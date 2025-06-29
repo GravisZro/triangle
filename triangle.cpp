@@ -934,27 +934,45 @@ struct behavior {
 
 /* Fast lookup arrays to speed some of the mesh manipulation primitives.     */
 
-int plus1mod3[3] = {1, 2, 0};
-int minus1mod3[3] = {2, 0, 1};
+constexpr int plus1mod3[3] = {1, 2, 0};
+constexpr int minus1mod3[3] = {2, 0, 1};
 
 /********* Primitives for triangles                                  *********/
 /*                                                                           */
 /*                                                                           */
 
+[[gnu::always_inline]] inline intptr_t get_orientation(const triangle& tri)
+{
+  return reinterpret_cast<const intptr_t>(tri) & intptr_t(3);
+}
+
+[[gnu::always_inline]] inline triangle* disorient(const triangle& tri, intptr_t orient)
+{
+  return reinterpret_cast<triangle*>(reinterpret_cast<const intptr_t>(tri) ^ orient);
+}
+
+[[gnu::always_inline]] inline triangle reorient(triangle* tri, intptr_t orient)
+{
+  return reinterpret_cast<triangle>(reinterpret_cast<intptr_t>(tri) | orient);
+}
+
 /* decode() converts a pointer to an oriented triangle.  The orientation is  */
 /*   extracted from the two least significant bits of the pointer.           */
 
-#define decode(ptr, otri)                                                     \
-  (otri).orient = (int) ((INT_PTR) (ptr) & (INT_PTR) 3l);                     \
-  (otri).tri = (triangle *)                                                   \
-                  ((INT_PTR) (ptr) ^ (INT_PTR) (otri).orient)
+[[gnu::always_inline]] inline void decode(const triangle& tri, otri& ori_tri)
+{
+  ori_tri.orient = int(get_orientation(tri));
+  ori_tri.tri = disorient(tri, ori_tri.orient);
+}
 
 /* encode() compresses an oriented triangle into a single pointer.  It       */
 /*   relies on the assumption that all triangles are aligned to four-byte    */
 /*   boundaries, so the two least significant bits of (otri).tri are zero.   */
 
-#define encode(otri)                                                          \
-  (triangle) ((INT_PTR) (otri).tri | (INT_PTR) (otri).orient)
+[[gnu::always_inline]] inline triangle encode(otri& ori_tri)
+{
+  return reorient(ori_tri.tri, ori_tri.orient);
+}
 
 /* The following handle manipulation primitives are all described by Guibas  */
 /*   and Stolfi.  However, Guibas and Stolfi use an edge-based data          */
@@ -964,196 +982,264 @@ int minus1mod3[3] = {2, 0, 1};
 /*   direction is necessarily reversed, because the handle specified by an   */
 /*   oriented triangle is directed counterclockwise around the triangle.     */
 
-#define sym(otri1, otri2)                                                     \
-  ptr = (otri1).tri[(otri1).orient];                                          \
-  decode(ptr, otri2);
+[[gnu::always_inline]] inline void sym(const otri& a, otri& b)
+{
+  decode(a.tri[a.orient], b);
+}
 
-#define symself(otri)                                                         \
-  ptr = (otri).tri[(otri).orient];                                            \
-  decode(ptr, otri);
+[[gnu::always_inline]] inline void symself(otri& a)
+{
+  sym(a,a);
+}
 
 /* lnext() finds the next edge (counterclockwise) of a triangle.             */
 
-#define lnext(otri1, otri2)                                                   \
-  (otri2).tri = (otri1).tri;                                                  \
-  (otri2).orient = plus1mod3[(otri1).orient]
+[[gnu::always_inline]] inline void lnext(const otri& a, otri& b)
+{
+  b.tri = a.tri;
+  b.orient = plus1mod3[a.orient];
+}
 
-#define lnextself(otri)                                                       \
-  (otri).orient = plus1mod3[(otri).orient]
+[[gnu::always_inline]] inline void lnextself(otri& a)
+{
+  a.orient = plus1mod3[a.orient];
+}
 
 /* lprev() finds the previous edge (clockwise) of a triangle.                */
 
-#define lprev(otri1, otri2)                                                   \
-  (otri2).tri = (otri1).tri;                                                  \
-  (otri2).orient = minus1mod3[(otri1).orient]
+[[gnu::always_inline]] inline void lprev(const otri& a, otri& b)
+{
+  b.tri = a.tri;
+  b.orient = minus1mod3[a.orient];
+}
 
-#define lprevself(otri)                                                       \
-  (otri).orient = minus1mod3[(otri).orient]
-
+[[gnu::always_inline]] inline void lprevself(otri& a)
+{
+  a.orient = minus1mod3[a.orient];
+}
 /* onext() spins counterclockwise around a vertex; that is, it finds the     */
 /*   next edge with the same origin in the counterclockwise direction.  This */
 /*   edge is part of a different triangle.                                   */
 
-#define onext(otri1, otri2)                                                   \
-  lprev(otri1, otri2);                                                        \
-  symself(otri2);
+[[gnu::always_inline]] inline void onext(const otri& a, otri& b)
+{
+  lprev(a, b);
+  symself(b);
+}
 
-#define onextself(otri)                                                       \
-  lprevself(otri);                                                            \
-  symself(otri);
+[[gnu::always_inline]] inline void onextself(otri& a)
+{
+  onext(a, a);
+}
 
 /* oprev() spins clockwise around a vertex; that is, it finds the next edge  */
 /*   with the same origin in the clockwise direction.  This edge is part of  */
 /*   a different triangle.                                                   */
 
-#define oprev(otri1, otri2)                                                   \
-  sym(otri1, otri2);                                                          \
-  lnextself(otri2);
+[[gnu::always_inline]] inline void oprev(const otri& a, otri& b)
+{
+  sym(a, b);
+  lnextself(b);
+}
 
-#define oprevself(otri)                                                       \
-  symself(otri);                                                              \
-  lnextself(otri);
+[[gnu::always_inline]] inline void oprevself(otri& a)
+{
+  oprev(a, a);
+}
 
 /* dnext() spins counterclockwise around a vertex; that is, it finds the     */
 /*   next edge with the same destination in the counterclockwise direction.  */
 /*   This edge is part of a different triangle.                              */
 
-#define dnext(otri1, otri2)                                                   \
-  sym(otri1, otri2);                                                          \
-  lprevself(otri2);
+[[gnu::always_inline]] inline void dnext(const otri& a, otri& b)
+{
+  sym(a, b);
+  lprevself(b);
+}
 
-#define dnextself(otri)                                                       \
-  symself(otri);                                                              \
-  lprevself(otri);
+[[gnu::always_inline]] inline void dnextself(otri& a)
+{
+  dnext(a, a);
+}
 
 /* dprev() spins clockwise around a vertex; that is, it finds the next edge  */
 /*   with the same destination in the clockwise direction.  This edge is     */
 /*   part of a different triangle.                                           */
 
-#define dprev(otri1, otri2)                                                   \
-  lnext(otri1, otri2);                                                        \
-  symself(otri2);
+[[gnu::always_inline]] inline void dprev(const otri& a, otri& b)
+{
+  lnext(a, b);
+  symself(b);
+}
 
-#define dprevself(otri)                                                       \
-  lnextself(otri);                                                            \
-  symself(otri);
+[[gnu::always_inline]] inline void dprevself(otri& a)
+{
+  dprev(a, a);
+}
 
 /* rnext() moves one edge counterclockwise about the adjacent triangle.      */
 /*   (It's best understood by reading Guibas and Stolfi.  It involves        */
 /*   changing triangles twice.)                                              */
 
-#define rnext(otri1, otri2)                                                   \
-  sym(otri1, otri2);                                                          \
-  lnextself(otri2);                                                           \
-  symself(otri2);
+[[gnu::always_inline]] inline void rnext(const otri& a, otri& b)
+{
+  sym(a, b);
+  lnextself(b);
+  symself(b);
+}
 
-#define rnextself(otri)                                                       \
-  symself(otri);                                                              \
-  lnextself(otri);                                                            \
-  symself(otri);
+[[gnu::always_inline]] inline void rnextself(otri& a)
+{
+  rnext(a, a);
+}
 
 /* rprev() moves one edge clockwise about the adjacent triangle.             */
 /*   (It's best understood by reading Guibas and Stolfi.  It involves        */
 /*   changing triangles twice.)                                              */
 
-#define rprev(otri1, otri2)                                                   \
-  sym(otri1, otri2);                                                          \
-  lprevself(otri2);                                                           \
-  symself(otri2);
+[[gnu::always_inline]] inline void rprev(const otri& a, otri& b)
+{
+  sym(a, b);
+  lprevself(b);
+  symself(b);
+}
 
-#define rprevself(otri)                                                       \
-  symself(otri);                                                              \
-  lprevself(otri);                                                            \
-  symself(otri);
+[[gnu::always_inline]] inline void rprevself(otri& a)
+{
+  rprev(a, a);
+}
 
 /* These primitives determine or set the origin, destination, or apex of a   */
 /* triangle.                                                                 */
 
-#define org(otri, vertexptr)                                                  \
-  vertexptr = (vertex) (otri).tri[plus1mod3[(otri).orient] + 3]
+[[gnu::always_inline]] inline void org(const otri& a, vertex& v)
+{
+  v = reinterpret_cast<vertex>(a.tri[plus1mod3[a.orient] + 3]);
+}
 
-#define dest(otri, vertexptr)                                                 \
-  vertexptr = (vertex) (otri).tri[minus1mod3[(otri).orient] + 3]
+[[gnu::always_inline]] inline void dest(const otri& a, vertex& v)
+{
+  v = reinterpret_cast<vertex>(a.tri[minus1mod3[a.orient] + 3]);
+}
 
-#define apex(otri, vertexptr)                                                 \
-  vertexptr = (vertex) (otri).tri[(otri).orient + 3]
+[[gnu::always_inline]] inline void apex(const otri& a, vertex& v)
+{
+  v = reinterpret_cast<vertex>(a.tri[a.orient + 3]);
+}
 
-#define setorg(otri, vertexptr)                                               \
-  (otri).tri[plus1mod3[(otri).orient] + 3] = (triangle) vertexptr
+[[gnu::always_inline]] inline void setorg(otri& a, const vertex& v)
+{
+  a.tri[plus1mod3[a.orient] + 3] = reinterpret_cast<triangle>(v);
+}
 
-#define setdest(otri, vertexptr)                                              \
-  (otri).tri[minus1mod3[(otri).orient] + 3] = (triangle) vertexptr
+[[gnu::always_inline]] inline void setdest(otri& a, const vertex& v)
+{
+  a.tri[minus1mod3[a.orient] + 3] = reinterpret_cast<triangle>(v);
+}
 
-#define setapex(otri, vertexptr)                                              \
-  (otri).tri[(otri).orient + 3] = (triangle) vertexptr
+[[gnu::always_inline]] inline void setapex(otri& a, const vertex& v)
+{
+  a.tri[a.orient + 3] = reinterpret_cast<triangle>(v);
+}
 
 /* Bond two triangles together.                                              */
 
-#define bond(otri1, otri2)                                                    \
-  (otri1).tri[(otri1).orient] = encode(otri2);                                \
-  (otri2).tri[(otri2).orient] = encode(otri1)
+[[gnu::always_inline]] inline void bond(otri& a, otri& b)
+{
+  a.tri[a.orient] = encode(b);
+  b.tri[b.orient] = encode(a);
+}
 
 /* Dissolve a bond (from one side).  Note that the other triangle will still */
 /*   think it's connected to this triangle.  Usually, however, the other     */
 /*   triangle is being deleted entirely, or bonded to another triangle, so   */
 /*   it doesn't matter.                                                      */
 
-#define dissolve(m, otri)                                                        \
-  (otri).tri[(otri).orient] = (triangle) m->dummytri
+[[gnu::always_inline]] inline void dissolve(mesh* m, otri& a)
+{
+  a.tri[a.orient] = reinterpret_cast<triangle>(m->dummytri);
+}
 
 /* Copy an oriented triangle.                                                */
 
-#define otricopy(otri1, otri2)                                                \
-  (otri2).tri = (otri1).tri;                                                  \
-  (otri2).orient = (otri1).orient
+[[gnu::always_inline]] inline void otricopy(const otri& a, otri& b)
+{
+  b.tri = a.tri;
+  b.orient = a.orient;
+}
 
 /* Test for equality of oriented triangles.                                  */
 
-#define otriequal(otri1, otri2)                                               \
-  (((otri1).tri == (otri2).tri) &&                                            \
-   ((otri1).orient == (otri2).orient))
+[[gnu::always_inline]] inline bool otriequal(const otri& a, const otri& b)
+{
+  return a.tri == b.tri && a.orient == b.orient;
+}
 
 /* Primitives to infect or cure a triangle with the virus.  These rely on    */
 /*   the assumption that all subsegments are aligned to four-byte boundaries.*/
 
-#define infect(otri)                                                          \
-  (otri).tri[6] = (triangle)                                                  \
-                    ((INT_PTR) (otri).tri[6] | (INT_PTR) 2l)
+constexpr intptr_t infection = 2;
+constexpr intptr_t disnfection = ~infection;
 
-#define uninfect(otri)                                                        \
-  (otri).tri[6] = (triangle)                                                  \
-                    ((INT_PTR) (otri).tri[6] & ~ (INT_PTR) 2l)
+
+[[gnu::always_inline]] inline void infect(otri& a)
+{
+  a.tri[6] = reinterpret_cast<triangle>(
+      reinterpret_cast<intptr_t>(a.tri[6]) | infection);
+}
+
+[[gnu::always_inline]] inline void uninfect(otri& a)
+{
+  a.tri[6] = reinterpret_cast<triangle>(
+      reinterpret_cast<intptr_t>(a.tri[6]) & disnfection);
+}
 
 /* Test a triangle for viral infection.                                      */
 
-#define infected(otri)                                                        \
-  (((INT_PTR) (otri).tri[6] & (INT_PTR) 2l) != 0l)
+[[gnu::always_inline]] inline bool infected(otri& a)
+{
+  return reinterpret_cast<intptr_t>(a.tri[6]) & infection;
+}
 
 /* Check or set a triangle's attributes.                                     */
 
-#define elemattribute(m, otri, attnum)                                        \
-  ((REAL *) (otri).tri)[m->elemattribindex + (attnum)]
+[[gnu::always_inline]] inline REAL& elemattribute(const mesh* m, otri& a, int attnum)
+{
+  return reinterpret_cast<REAL*>(a.tri)[m->elemattribindex + (attnum)];
+}
 
-#define setelemattribute(m, otri, attnum, value)                              \
-  ((REAL *) (otri).tri)[m->elemattribindex + (attnum)] = value
+[[gnu::always_inline]] inline void setelemattribute(const mesh* m, otri& a, int attnum, REAL value)
+{
+  reinterpret_cast<REAL*>(a.tri)[m->elemattribindex + (attnum)] = value;
+}
 
 /* Check or set a triangle's maximum area bound.                             */
 
-#define areabound(m, otri)  ((REAL *) (otri).tri)[m->areaboundindex]
+[[gnu::always_inline]] inline REAL areabound(const mesh* m, otri& a)
+{
+  return reinterpret_cast<REAL*>(a.tri)[m->areaboundindex];
+}
 
-#define setareabound(m, otri, value)                                          \
-  ((REAL *) (otri).tri)[m->areaboundindex] = value
+[[gnu::always_inline]] inline void setareabound(const mesh* m, otri& a, REAL value)
+{
+  reinterpret_cast<REAL*>(a.tri)[m->areaboundindex] = value;
+}
 
 /* Check or set a triangle's deallocation.  Its second pointer is set to     */
 /*   NULL to indicate that it is not allocated.  (Its first pointer is used  */
 /*   for the stack of dead items.)  Its fourth pointer (its first vertex)    */
 /*   is set to NULL in case a `badtriang' structure points to it.            */
 
-#define deadtri(tria)  ((tria)[1] == (triangle) NULL)
+[[gnu::always_inline]] inline bool deadtri(const triangle* a)
+{
+  return a[1] == nullptr;
+}
 
-#define killtri(tria)                                                         \
-  (tria)[1] = (triangle) NULL;                                                \
-  (tria)[3] = (triangle) NULL
+[[gnu::always_inline]] inline void killtri(triangle* a)
+{
+  a[1] = nullptr;
+  a[3] = nullptr;
+}
 
 /********* Primitives for subsegments                                *********/
 /*                                                                           */
@@ -1164,119 +1250,165 @@ int minus1mod3[3] = {2, 0, 1};
 /*   least significant bits (one for orientation, one for viral infection)   */
 /*   are masked out to produce the real pointer.                             */
 
-#define sdecode(sptr, osub)                                                   \
-  (osub).ssorient = (int) ((INT_PTR) (sptr) & (INT_PTR) 1l);                  \
-  (osub).ss = (subseg *)                                                      \
-              ((INT_PTR) (sptr) & ~ (INT_PTR) 3l)
+
+[[gnu::always_inline]] inline void sdecode(const subseg& seg, osub& ori_sub)
+{
+  ori_sub.ssorient = int(reinterpret_cast<const intptr_t>(seg) & intptr_t(1));
+  ori_sub.ss = reinterpret_cast<subseg*>(reinterpret_cast<const intptr_t>(seg) & ~intptr_t(3));
+}
 
 /* sencode() compresses an oriented subsegment into a single pointer.  It    */
 /*   relies on the assumption that all subsegments are aligned to two-byte   */
 /*   boundaries, so the least significant bit of (osub).ss is zero.          */
 
-#define sencode(osub)                                                         \
-  (subseg) ((INT_PTR) (osub).ss | (INT_PTR) (osub).ssorient)
+[[gnu::always_inline]] inline subseg sencode(const osub& ori_sub)
+{
+  return reinterpret_cast<subseg>(reinterpret_cast<intptr_t>(ori_sub.ss) | ori_sub.ssorient);
+}
+
 
 /* ssym() toggles the orientation of a subsegment.                           */
 
-#define ssym(osub1, osub2)                                                    \
-  (osub2).ss = (osub1).ss;                                                    \
-  (osub2).ssorient = 1 - (osub1).ssorient
+[[gnu::always_inline]] inline void ssym(const osub& a, osub& b)
+{
+  b.ss = a.ss;
+  b.ssorient = 1 - a.ssorient;
+}
 
-#define ssymself(osub)                                                        \
-  (osub).ssorient = 1 - (osub).ssorient
+[[gnu::always_inline]] inline void ssymself(osub& a)
+{
+  a.ssorient = 1 - a.ssorient;
+}
 
 /* spivot() finds the other subsegment (from the same segment) that shares   */
 /*   the same origin.                                                        */
 
-#define spivot(osub1, osub2)                                                  \
-  sptr = (osub1).ss[(osub1).ssorient];                                        \
-  sdecode(sptr, osub2)
+[[gnu::always_inline]] inline void spivot(const osub& a, osub& b)
+{
+  sdecode(a.ss[a.ssorient], b);
+}
 
-#define spivotself(osub)                                                      \
-  sptr = (osub).ss[(osub).ssorient];                                          \
-  sdecode(sptr, osub)
+[[gnu::always_inline]] inline void spivotself(osub& a)
+{
+  spivot(a, a);
+}
 
 /* snext() finds the next subsegment (from the same segment) in sequence;    */
 /*   one whose origin is the input subsegment's destination.                 */
 
-#define snext(osub1, osub2)                                                   \
-  sptr = (osub1).ss[1 - (osub1).ssorient];                                    \
-  sdecode(sptr, osub2)
+[[gnu::always_inline]] inline void snext(const osub& a, osub& b)
+{
+  sdecode(a.ss[1 - a.ssorient], b);
+}
 
-#define snextself(osub)                                                       \
-  sptr = (osub).ss[1 - (osub).ssorient];                                      \
-  sdecode(sptr, osub)
+[[gnu::always_inline]] inline void snextself(osub& a)
+{
+  snext(a, a);
+}
 
 /* These primitives determine or set the origin or destination of a          */
 /*   subsegment or the segment that includes it.                             */
 
-#define sorg(osub, vertexptr)                                                 \
-  vertexptr = (vertex) (osub).ss[2 + (osub).ssorient]
+[[gnu::always_inline]] inline void sorg(const osub& a, vertex& v)
+{
+  v = reinterpret_cast<vertex>(a.ss[2 + a.ssorient]);
+}
 
-#define sdest(osub, vertexptr)                                                \
-  vertexptr = (vertex) (osub).ss[3 - (osub).ssorient]
+[[gnu::always_inline]] inline void sdest(const osub& a, vertex& v)
+{
+  v = reinterpret_cast<vertex>(a.ss[3 - a.ssorient]);
+}
 
-#define setsorg(osub, vertexptr)                                              \
-  (osub).ss[2 + (osub).ssorient] = (subseg) vertexptr
+[[gnu::always_inline]] inline void setsorg(osub& a, const vertex& v)
+{
+  a.ss[2 + a.ssorient] = reinterpret_cast<const subseg>(v);
+}
 
-#define setsdest(osub, vertexptr)                                             \
-  (osub).ss[3 - (osub).ssorient] = (subseg) vertexptr
+[[gnu::always_inline]] inline void setsdest(osub& a, const vertex& v)
+{
+  a.ss[3 - a.ssorient] = reinterpret_cast<const subseg>(v);
+}
 
-#define segorg(osub, vertexptr)                                               \
-  vertexptr = (vertex) (osub).ss[4 + (osub).ssorient]
+[[gnu::always_inline]] inline void segorg(const osub& a, vertex& v)
+{
+  v = reinterpret_cast<vertex>(a.ss[4 + a.ssorient]);
+}
 
-#define segdest(osub, vertexptr)                                              \
-  vertexptr = (vertex) (osub).ss[5 - (osub).ssorient]
+[[gnu::always_inline]] inline void segdest(const osub& a, vertex& v)
+{
+  v = reinterpret_cast<vertex>(a.ss[5 + a.ssorient]);
+}
 
-#define setsegorg(osub, vertexptr)                                            \
-  (osub).ss[4 + (osub).ssorient] = (subseg) vertexptr
+[[gnu::always_inline]] inline void setsegorg(const osub& a, vertex& v)
+{
+  a.ss[4 + a.ssorient] = reinterpret_cast<const subseg>(v);
+}
 
-#define setsegdest(osub, vertexptr)                                           \
-  (osub).ss[5 - (osub).ssorient] = (subseg) vertexptr
+[[gnu::always_inline]] inline void setsegdest(osub& a, const vertex& v)
+{
+  a.ss[5 + a.ssorient] = reinterpret_cast<const subseg>(v);;
+}
 
 /* These primitives read or set a boundary marker.  Boundary markers are     */
 /*   used to hold user-defined tags for setting boundary conditions in       */
 /*   finite element solvers.                                                 */
 
-#define mark(osub)  (* (int *) ((osub).ss + 8))
+[[gnu::always_inline]] inline int mark(const osub& a)
+{
+  return *reinterpret_cast<int*>(&a.ss[8]);
+}
 
-#define setmark(osub, value)                                                  \
-  * (int *) ((osub).ss + 8) = value
+[[gnu::always_inline]] inline void setmark(osub& a, int value)
+{
+  *reinterpret_cast<int*>(&a.ss[8]) = value;
+}
 
 /* Bond two subsegments together.                                            */
 
-#define sbond(osub1, osub2)                                                   \
-  (osub1).ss[(osub1).ssorient] = sencode(osub2);                              \
-  (osub2).ss[(osub2).ssorient] = sencode(osub1)
+[[gnu::always_inline]] inline void sbond(osub& a, osub& b)
+{
+  a.ss[a.ssorient] = sencode(b);
+  b.ss[b.ssorient] = sencode(a);
+}
 
 /* Dissolve a subsegment bond (from one side).  Note that the other          */
 /*   subsegment will still think it's connected to this subsegment.          */
 
-#define sdissolve(m, osub)                                                       \
-  (osub).ss[(osub).ssorient] = (subseg) m->dummysub
+[[gnu::always_inline]] inline void sdissolve(const mesh* m, osub& a)
+{
+  a.ss[a.ssorient] = reinterpret_cast<subseg>(m->dummysub);
+}
 
 /* Copy a subsegment.                                                        */
 
-#define subsegcopy(osub1, osub2)                                              \
-  (osub2).ss = (osub1).ss;                                                    \
-  (osub2).ssorient = (osub1).ssorient
+[[gnu::always_inline]] inline void subsegcopy(const osub& a, osub& b)
+{
+  b.ss = a.ss;
+  b.ssorient = a.ssorient;
+}
 
 /* Test for equality of subsegments.                                         */
 
-#define subsegequal(osub1, osub2)                                             \
-  (((osub1).ss == (osub2).ss) &&                                              \
-   ((osub1).ssorient == (osub2).ssorient))
+[[gnu::always_inline]] inline bool subsegcopy(const osub& a, const osub& b)
+{
+  return a.ss == b.ss && a.ssorient == b.ssorient;
+}
 
 /* Check or set a subsegment's deallocation.  Its second pointer is set to   */
 /*   NULL to indicate that it is not allocated.  (Its first pointer is used  */
 /*   for the stack of dead items.)  Its third pointer (its first vertex)     */
 /*   is set to NULL in case a `badsubseg' structure points to it.            */
 
-#define deadsubseg(sub)  ((sub)[1] == (subseg) NULL)
+[[gnu::always_inline]] inline bool deadsubseg(const subseg* sub)
+{
+  return sub[1] == nullptr;
+}
 
-#define killsubseg(sub)                                                       \
-  (sub)[1] = (subseg) NULL;                                                   \
-  (sub)[2] = (subseg) NULL
+[[gnu::always_inline]] inline void killsubseg(subseg* sub)
+{
+  sub[1] = nullptr;
+  sub[2] = nullptr;
+}
 
 /********* Primitives for interacting triangles and subsegments      *********/
 /*                                                                           */
@@ -1284,51 +1416,74 @@ int minus1mod3[3] = {2, 0, 1};
 
 /* tspivot() finds a subsegment abutting a triangle.                         */
 
-#define tspivot(otri, osub)                                                   \
-  sptr = (subseg) (otri).tri[6 + (otri).orient];                              \
-  sdecode(sptr, osub)
+[[gnu::always_inline]] inline void tspivot(const otri& a, osub& b)
+{
+  sdecode(reinterpret_cast<subseg>(a.tri[6 + a.orient]), b);
+}
 
 /* stpivot() finds a triangle abutting a subsegment.  It requires that the   */
 /*   variable `ptr' of type `triangle' be defined.                           */
 
-#define stpivot(osub, otri)                                                   \
-  ptr = (triangle) (osub).ss[6 + (osub).ssorient];                            \
-  decode(ptr, otri)
+[[gnu::always_inline]] inline void stpivot(const osub& a, otri& b)
+{
+  decode(reinterpret_cast<triangle>(a.ss[6 + a.ssorient]), b);
+}
 
 /* Bond a triangle to a subsegment.                                          */
 
-#define tsbond(otri, osub)                                                    \
-  (otri).tri[6 + (otri).orient] = (triangle) sencode(osub);                   \
-  (osub).ss[6 + (osub).ssorient] = (subseg) encode(otri)
+[[gnu::always_inline]] inline void tsbond(otri& a, osub& b)
+{
+  a.tri[6 + a.orient] = reinterpret_cast<triangle>(sencode(b));
+  b.ss[6 + b.ssorient] = reinterpret_cast<subseg>(encode(a));
+}
 
 /* Dissolve a bond (from the triangle side).                                 */
 
-#define tsdissolve(m, otri)                                                      \
-  (otri).tri[6 + (otri).orient] = (triangle) m->dummysub
+[[gnu::always_inline]] inline void tsdissolve(const mesh* m, otri& a)
+{
+  a.tri[6 + a.orient] = reinterpret_cast<triangle>(m->dummysub);
+}
 
 /* Dissolve a bond (from the subsegment side).                               */
 
-#define stdissolve(m, osub)                                                      \
-  (osub).ss[6 + (osub).ssorient] = (subseg) m->dummytri
+[[gnu::always_inline]] inline void stdissolve(const mesh* m, osub& a)
+{
+  a.ss[6 + a.ssorient] = reinterpret_cast<subseg>(m->dummytri);
+}
 
 /********* Primitives for vertices                                   *********/
 /*                                                                           */
 /*                                                                           */
 
-#define vertexmark(m, vx)  ((int *) (vx))[m->vertexmarkindex]
+[[gnu::always_inline]] inline int vertexmark(const mesh* m, const vertex& vx)
+{
+  return reinterpret_cast<int*>(vx)[m->vertexmarkindex];
+}
 
-#define setvertexmark(m, vx, value)                                              \
-  ((int *) (vx))[m->vertexmarkindex] = value
+[[gnu::always_inline]] inline void setvertexmark(const mesh* m, vertex& vx, int value)
+{
+  reinterpret_cast<int*>(vx)[m->vertexmarkindex] = value;
+}
 
-#define vertextype(m, vx)  ((int *) (vx))[m->vertexmarkindex + 1]
+[[gnu::always_inline]] inline int vertextype(const mesh* m, const vertex& vx)
+{
+  return reinterpret_cast<int*>(vx)[m->vertexmarkindex + 1];
+}
 
-#define setvertextype(m, vx, value)                                              \
-  ((int *) (vx))[m->vertexmarkindex + 1] = value
+[[gnu::always_inline]] inline void setvertextype(const mesh* m, vertex& vx, int value)
+{
+  reinterpret_cast<int*>(vx)[m->vertexmarkindex + 1] = value;
+}
 
-#define vertex2tri(m, vx)  ((triangle *) (vx))[m->vertex2triindex]
+[[gnu::always_inline]] inline triangle vertex2tri(const mesh* m, const vertex& vx)
+{
+  return reinterpret_cast<triangle*>(vx)[m->vertex2triindex];
+}
 
-#define setvertex2tri(m, vx, value)                                              \
-  ((triangle *) (vx))[m->vertex2triindex] = value
+[[gnu::always_inline]] inline void setvertex2tri(const mesh* m, vertex& vx, triangle value)
+{
+  reinterpret_cast<triangle*>(vx)[m->vertex2triindex] = value;
+}
 
 /**                                                                         **/
 /**                                                                         **/
@@ -10889,7 +11044,7 @@ struct behavior *b;
     heapsize--;
     check4events = 1;
     if (nextevent->xkey < m->xmin) {
-      decode(nextevent->eventptr, fliptri);
+      decode(reinterpret_cast<triangle>(nextevent->eventptr), fliptri);
       oprev(fliptri, farlefttri);
       check4deadevent(&farlefttri, &freeevents, eventheap, &heapsize);
       onext(fliptri, farrighttri);
@@ -10986,7 +11141,7 @@ struct behavior *b;
         newevent->eventptr = (VOID *) encode(lefttri);
         eventheapinsert(eventheap, heapsize, newevent);
         heapsize++;
-        setorg(lefttri, newevent);
+        setorg(lefttri, reinterpret_cast<vertex>(newevent));
       }
       apex(righttri, leftvertex);
       org(righttri, midvertex);
@@ -11001,7 +11156,7 @@ struct behavior *b;
         newevent->eventptr = (VOID *) encode(farrighttri);
         eventheapinsert(eventheap, heapsize, newevent);
         heapsize++;
-        setorg(farrighttri, newevent);
+        setorg(farrighttri, reinterpret_cast<vertex>(newevent));
       }
     }
   }
