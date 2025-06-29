@@ -1087,7 +1087,7 @@ int minus1mod3[3] = {2, 0, 1};
 /*   triangle is being deleted entirely, or bonded to another triangle, so   */
 /*   it doesn't matter.                                                      */
 
-#define dissolve(otri)                                                        \
+#define dissolve(m, otri)                                                        \
   (otri).tri[(otri).orient] = (triangle) m->dummytri
 
 /* Copy an oriented triangle.                                                */
@@ -1120,17 +1120,17 @@ int minus1mod3[3] = {2, 0, 1};
 
 /* Check or set a triangle's attributes.                                     */
 
-#define elemattribute(otri, attnum)                                           \
+#define elemattribute(m, otri, attnum)                                        \
   ((REAL *) (otri).tri)[m->elemattribindex + (attnum)]
 
-#define setelemattribute(otri, attnum, value)                                 \
+#define setelemattribute(m, otri, attnum, value)                              \
   ((REAL *) (otri).tri)[m->elemattribindex + (attnum)] = value
 
 /* Check or set a triangle's maximum area bound.                             */
 
-#define areabound(otri)  ((REAL *) (otri).tri)[m->areaboundindex]
+#define areabound(m, otri)  ((REAL *) (otri).tri)[m->areaboundindex]
 
-#define setareabound(otri, value)                                             \
+#define setareabound(m, otri, value)                                          \
   ((REAL *) (otri).tri)[m->areaboundindex] = value
 
 /* Check or set a triangle's deallocation.  Its second pointer is set to     */
@@ -1241,7 +1241,7 @@ int minus1mod3[3] = {2, 0, 1};
 /* Dissolve a subsegment bond (from one side).  Note that the other          */
 /*   subsegment will still think it's connected to this subsegment.          */
 
-#define sdissolve(osub)                                                       \
+#define sdissolve(m, osub)                                                       \
   (osub).ss[(osub).ssorient] = (subseg) m->dummysub
 
 /* Copy a subsegment.                                                        */
@@ -1292,31 +1292,31 @@ int minus1mod3[3] = {2, 0, 1};
 
 /* Dissolve a bond (from the triangle side).                                 */
 
-#define tsdissolve(otri)                                                      \
+#define tsdissolve(m, otri)                                                      \
   (otri).tri[6 + (otri).orient] = (triangle) m->dummysub
 
 /* Dissolve a bond (from the subsegment side).                               */
 
-#define stdissolve(osub)                                                      \
+#define stdissolve(m, osub)                                                      \
   (osub).ss[6 + (osub).ssorient] = (subseg) m->dummytri
 
 /********* Primitives for vertices                                   *********/
 /*                                                                           */
 /*                                                                           */
 
-#define vertexmark(vx)  ((int *) (vx))[m->vertexmarkindex]
+#define vertexmark(m, vx)  ((int *) (vx))[m->vertexmarkindex]
 
-#define setvertexmark(vx, value)                                              \
+#define setvertexmark(m, vx, value)                                              \
   ((int *) (vx))[m->vertexmarkindex] = value
 
-#define vertextype(vx)  ((int *) (vx))[m->vertexmarkindex + 1]
+#define vertextype(m, vx)  ((int *) (vx))[m->vertexmarkindex + 1]
 
-#define setvertextype(vx, value)                                              \
+#define setvertextype(m, vx, value)                                              \
   ((int *) (vx))[m->vertexmarkindex + 1] = value
 
-#define vertex2tri(vx)  ((triangle *) (vx))[m->vertex2triindex]
+#define vertex2tri(m, vx)  ((triangle *) (vx))[m->vertex2triindex]
 
-#define setvertex2tri(vx, value)                                              \
+#define setvertex2tri(m, vx, value)                                              \
   ((triangle *) (vx))[m->vertex2triindex] = value
 
 /**                                                                         **/
@@ -6802,22 +6802,22 @@ void flip(struct mesh *m, struct behavior *b, struct otri *flipedge)
     tspivot(botright, botrsubseg);
     tspivot(topright, toprsubseg);
     if (toplsubseg.ss == m->dummysub) {
-      tsdissolve(topright);
+      tsdissolve(m, topright);
     } else {
       tsbond(topright, toplsubseg);
     }
     if (botlsubseg.ss == m->dummysub) {
-      tsdissolve(topleft);
+      tsdissolve(m, topleft);
     } else {
       tsbond(topleft, botlsubseg);
     }
     if (botrsubseg.ss == m->dummysub) {
-      tsdissolve(botleft);
+      tsdissolve(m, botleft);
     } else {
       tsbond(botleft, botrsubseg);
     }
     if (toprsubseg.ss == m->dummysub) {
-      tsdissolve(botright);
+      tsdissolve(m, botright);
     } else {
       tsbond(botright, toprsubseg);
     }
@@ -6929,22 +6929,22 @@ void unflip(struct mesh *m, struct behavior *b, struct otri *flipedge)
     tspivot(botright, botrsubseg);
     tspivot(topright, toprsubseg);
     if (toplsubseg.ss == m->dummysub) {
-      tsdissolve(botleft);
+      tsdissolve(m, botleft);
     } else {
       tsbond(botleft, toplsubseg);
     }
     if (botlsubseg.ss == m->dummysub) {
-      tsdissolve(botright);
+      tsdissolve(m, botright);
     } else {
       tsbond(botright, botlsubseg);
     }
     if (botrsubseg.ss == m->dummysub) {
-      tsdissolve(topright);
+      tsdissolve(m, topright);
     } else {
       tsbond(topright, botrsubseg);
     }
     if (toprsubseg.ss == m->dummysub) {
-      tsdissolve(topleft);
+      tsdissolve(m, topleft);
     } else {
       tsbond(topleft, toprsubseg);
     }
@@ -7145,11 +7145,11 @@ enum insertvertexresult insertvertex(struct mesh *m, struct behavior *b,
     setorg(horiz, newvertex);
     for (i = 0; i < m->eextras; i++) {
       /* Set the element attributes of a new triangle. */
-      setelemattribute(newbotright, i, elemattribute(botright, i));
+      setelemattribute(m, newbotright, i, elemattribute(m, botright, i));
     }
     if (b->vararea) {
       /* Set the area constraint of a new triangle. */
-      setareabound(newbotright, areabound(botright));
+      setareabound(m, newbotright, areabound(m, botright));
     }
     if (mirrorflag) {
       dest(topright, topvertex);
@@ -7159,11 +7159,11 @@ enum insertvertexresult insertvertex(struct mesh *m, struct behavior *b,
       setorg(topright, newvertex);
       for (i = 0; i < m->eextras; i++) {
         /* Set the element attributes of another new triangle. */
-        setelemattribute(newtopright, i, elemattribute(topright, i));
+        setelemattribute(m, newtopright, i, elemattribute(m, topright, i));
       }
       if (b->vararea) {
         /* Set the area constraint of another new triangle. */
-        setareabound(newtopright, areabound(topright));
+        setareabound(m, newtopright, areabound(m, topright));
       }
     }
 
@@ -7214,8 +7214,8 @@ enum insertvertexresult insertvertex(struct mesh *m, struct behavior *b,
       ssymself(*splitseg);
       /* Transfer the subsegment's boundary marker to the vertex */
       /*   if required.                                          */
-      if (vertexmark(newvertex) == 0) {
-        setvertexmark(newvertex, mark(*splitseg));
+      if (vertexmark(m, newvertex) == 0) {
+        setvertexmark(m, newvertex, mark(*splitseg));
       }
     }
 
@@ -7297,15 +7297,15 @@ enum insertvertexresult insertvertex(struct mesh *m, struct behavior *b,
     setapex(horiz, newvertex);
     for (i = 0; i < m->eextras; i++) {
       /* Set the element attributes of the new triangles. */
-      attrib = elemattribute(horiz, i);
-      setelemattribute(newbotleft, i, attrib);
-      setelemattribute(newbotright, i, attrib);
+      attrib = elemattribute(m, horiz, i);
+      setelemattribute(m, newbotleft, i, attrib);
+      setelemattribute(m, newbotright, i, attrib);
     }
     if (b->vararea) {
       /* Set the area constraint of the new triangles. */
-      area = areabound(horiz);
-      setareabound(newbotleft, area);
-      setareabound(newbotright, area);
+      area = areabound(m, horiz);
+      setareabound(m, newbotleft, area);
+      setareabound(m, newbotright, area);
     }
 
     /* There may be subsegments that need to be bonded */
@@ -7313,12 +7313,12 @@ enum insertvertexresult insertvertex(struct mesh *m, struct behavior *b,
     if (m->checksegments) {
       tspivot(botleft, botlsubseg);
       if (botlsubseg.ss != m->dummysub) {
-        tsdissolve(botleft);
+        tsdissolve(m, botleft);
         tsbond(newbotleft, botlsubseg);
       }
       tspivot(botright, botrsubseg);
       if (botrsubseg.ss != m->dummysub) {
-        tsdissolve(botright);
+        tsdissolve(m, botright);
         tsbond(newbotright, botrsubseg);
       }
     }
@@ -7467,22 +7467,22 @@ enum insertvertexresult insertvertex(struct mesh *m, struct behavior *b,
             tspivot(botright, botrsubseg);
             tspivot(topright, toprsubseg);
             if (toplsubseg.ss == m->dummysub) {
-              tsdissolve(topright);
+              tsdissolve(m, topright);
             } else {
               tsbond(topright, toplsubseg);
             }
             if (botlsubseg.ss == m->dummysub) {
-              tsdissolve(topleft);
+              tsdissolve(m, topleft);
             } else {
               tsbond(topleft, botlsubseg);
             }
             if (botrsubseg.ss == m->dummysub) {
-              tsdissolve(botleft);
+              tsdissolve(m, botleft);
             } else {
               tsbond(botleft, botrsubseg);
             }
             if (toprsubseg.ss == m->dummysub) {
-              tsdissolve(botright);
+              tsdissolve(m, botright);
             } else {
               tsbond(botright, toprsubseg);
             }
@@ -7496,21 +7496,21 @@ enum insertvertexresult insertvertex(struct mesh *m, struct behavior *b,
           setapex(top, leftvertex);
           for (i = 0; i < m->eextras; i++) {
             /* Take the average of the two triangles' attributes. */
-            attrib = 0.5 * (elemattribute(top, i) + elemattribute(horiz, i));
-            setelemattribute(top, i, attrib);
-            setelemattribute(horiz, i, attrib);
+            attrib = 0.5 * (elemattribute(m, top, i) + elemattribute(m, horiz, i));
+            setelemattribute(m, top, i, attrib);
+            setelemattribute(m, horiz, i, attrib);
           }
           if (b->vararea) {
-            if ((areabound(top) <= 0.0) || (areabound(horiz) <= 0.0)) {
+            if ((areabound(m, top) <= 0.0) || (areabound(m, horiz) <= 0.0)) {
               area = -1.0;
             } else {
               /* Take the average of the two triangles' area constraints.    */
               /*   This prevents small area constraints from migrating a     */
               /*   long, long way from their original location due to flips. */
-              area = 0.5 * (areabound(top) + areabound(horiz));
+              area = 0.5 * (areabound(m, top) + areabound(m, horiz));
             }
-            setareabound(top, area);
-            setareabound(horiz, area);
+            setareabound(m, top, area);
+            setareabound(m, horiz, area);
           }
 
           if (m->checkquality) {
@@ -8667,13 +8667,13 @@ long removeghosts(struct mesh *m, struct behavior *b, struct otri *startghost)
       /* Watch out for the case where all the input vertices are collinear. */
       if (dissolveedge.tri != m->dummytri) {
         org(dissolveedge, markorg);
-        if (vertexmark(markorg) == 0) {
-          setvertexmark(markorg, 1);
+        if (vertexmark(m, markorg) == 0) {
+          setvertexmark(m, markorg, 1);
         }
       }
     }
     /* Remove a bounding triangle from a convex hull triangle. */
-    dissolve(dissolveedge);
+    dissolve(m, dissolveedge);
     /* Find the next bounding triangle. */
     sym(deadtriangle, dissolveedge);
     /* Delete the bounding triangle. */
@@ -8721,7 +8721,7 @@ long divconqdelaunay(struct mesh *m, struct behavior *b)
 "Warning:  A duplicate vertex at (%.12g, %.12g) appeared and was ignored.\n",
                sortarray[j][0], sortarray[j][1]);
       }
-      setvertextype(sortarray[j], UNDEADVERTEX);
+      setvertextype(m, sortarray[j], UNDEADVERTEX);
       m->undeads++;
     } else {
       i++;
@@ -8884,13 +8884,13 @@ long removebox(struct mesh *m, struct behavior *b)
       /*   will cause a bad pointer reference.                            */
       if (dissolveedge.tri != m->dummytri) {
         org(dissolveedge, markorg);
-        if (vertexmark(markorg) == 0) {
-          setvertexmark(markorg, 1);
+        if (vertexmark(m, markorg) == 0) {
+          setvertexmark(m, markorg, 1);
         }
       }
     }
     /* Disconnect the bounding box triangle from the mesh triangle. */
-    dissolve(dissolveedge);
+    dissolve(m, dissolveedge);
     lnext(nextedge, deadtriangle);
     sym(deadtriangle, nextedge);
     /* Get rid of the bounding box triangle. */
@@ -8944,7 +8944,7 @@ long incrementaldelaunay(struct mesh *m, struct behavior *b)
 "Warning:  A duplicate vertex at (%.12g, %.12g) appeared and was ignored.\n",
                vertexloop[0], vertexloop[1]);
       }
-      setvertextype(vertexloop, UNDEADVERTEX);
+      setvertextype(m, vertexloop, UNDEADVERTEX);
       m->undeads++;
     }
     vertexloop = vertextraverse(m);
@@ -9443,7 +9443,7 @@ long sweeplinedelaunay(struct mesh *m, struct behavior *b)
 "Warning:  A duplicate vertex at (%.12g, %.12g) appeared and was ignored.\n",
                secondvertex[0], secondvertex[1]);
       }
-      setvertextype(secondvertex, UNDEADVERTEX);
+      setvertextype(m, secondvertex, UNDEADVERTEX);
       m->undeads++;
     }
   } while ((firstvertex[0] == secondvertex[0]) &&
@@ -9884,7 +9884,7 @@ long reconstruct(struct mesh *m, struct behavior *b, char *elefilename,
             (killvertexindex < b->firstnumber + m->invertices)) {
           /* Delete the non-corner vertex if it's not already deleted. */
           killvertex = getvertex(m, b, killvertexindex);
-          if (vertextype(killvertex) != DEADVERTEX) {
+          if (vertextype(m, killvertex) != DEADVERTEX) {
             vertexdealloc(m, killvertex);
           }
         }
@@ -9896,13 +9896,13 @@ long reconstruct(struct mesh *m, struct behavior *b, char *elefilename,
     /* Read the triangle's attributes. */
     for (j = 0; j < m->eextras; j++) {
 #ifdef TRILIBRARY
-      setelemattribute(triangleloop, j, triangleattriblist[attribindex++]);
+      setelemattribute(m, triangleloop, j, triangleattriblist[attribindex++]);
 #else /* not TRILIBRARY */
       stringptr = findfield(stringptr);
       if (*stringptr == '\0') {
-        setelemattribute(triangleloop, j, 0);
+        setelemattribute(m, triangleloop, j, 0);
       } else {
-        setelemattribute(triangleloop, j,
+        setelemattribute(m, triangleloop, j,
                          (REAL) strtod(stringptr, &stringptr));
       }
 #endif /* not TRILIBRARY */
@@ -9921,7 +9921,7 @@ long reconstruct(struct mesh *m, struct behavior *b, char *elefilename,
         area = (REAL) strtod(stringptr, &stringptr);
       }
 #endif /* not TRILIBRARY */
-      setareabound(triangleloop, area);
+      setareabound(m, triangleloop, area);
     }
 
     /* Set the triangle's vertices. */
@@ -10100,7 +10100,7 @@ long reconstruct(struct mesh *m, struct behavior *b, char *elefilename,
       /*   information gets overwritten.                 */
       nexttri = checktri.tri[6 + checktri.orient];
       /* No adjacent subsegment.  (This overwrites the stack info.) */
-      tsdissolve(checktri);
+      tsdissolve(m, checktri);
       sym(checktri, checkneighbor);
       if (checkneighbor.tri == m->dummytri) {
         insertsubseg(m, b, &checktri, 1);
@@ -10290,8 +10290,8 @@ void segmentintersection(struct mesh *m, struct behavior *b,
   for (i = 0; i < 2 + m->nextras; i++) {
     newvertex[i] = torg[i] + split * (tdest[i] - torg[i]);
   }
-  setvertexmark(newvertex, mark(*splitsubseg));
-  setvertextype(newvertex, INPUTVERTEX);
+  setvertexmark(m, newvertex, mark(*splitsubseg));
+  setvertextype(m, newvertex, INPUTVERTEX);
   if (b->verbose > 1) {
     printf(
   "  Splitting subsegment (%.12g, %.12g) (%.12g, %.12g) at (%.12g, %.12g).\n",
@@ -10305,7 +10305,7 @@ void segmentintersection(struct mesh *m, struct behavior *b,
     internalerror();
   }
   /* Record a triangle whose origin is the new vertex. */
-  setvertex2tri(newvertex, encode(*splittri));
+  setvertex2tri(m, newvertex, encode(*splittri));
   if (m->steinerleft > 0) {
     m->steinerleft--;
   }
@@ -10313,8 +10313,8 @@ void segmentintersection(struct mesh *m, struct behavior *b,
   /* Divide the segment into two, and correct the segment endpoints. */
   ssymself(*splitsubseg);
   spivot(*splitsubseg, opposubseg);
-  sdissolve(*splitsubseg);
-  sdissolve(opposubseg);
+  sdissolve(m, *splitsubseg);
+  sdissolve(m, opposubseg);
   do {
     setsegorg(*splitsubseg, newvertex);
     snextself(*splitsubseg);
@@ -10460,8 +10460,8 @@ void conformingedge(struct mesh *m, struct behavior *b,
   for (i = 0; i < 2 + m->nextras; i++) {
     newvertex[i] = 0.5 * (endpoint1[i] + endpoint2[i]);
   }
-  setvertexmark(newvertex, newmark);
-  setvertextype(newvertex, SEGMENTVERTEX);
+  setvertexmark(m, newvertex, newmark);
+  setvertextype(m, newvertex, SEGMENTVERTEX);
   /* No known triangle to search from. */
   searchtri1.tri = m->dummytri;
   /* Attempt to insert the new vertex. */
@@ -10776,7 +10776,7 @@ void insertsegment(struct mesh *m, struct behavior *b,
 
   /* Find a triangle whose origin is the segment's first endpoint. */
   checkvertex = nullptr;
-  encodedtri = vertex2tri(endpoint1);
+  encodedtri = vertex2tri(m, endpoint1);
   if (encodedtri != nullptr) {
     decode(encodedtri, searchtri1);
     org(searchtri1, checkvertex);
@@ -10809,7 +10809,7 @@ void insertsegment(struct mesh *m, struct behavior *b,
 
   /* Find a triangle whose origin is the segment's second endpoint. */
   checkvertex = nullptr;
-  encodedtri = vertex2tri(endpoint2);
+  encodedtri = vertex2tri(m, endpoint2);
   if (encodedtri != nullptr) {
     decode(encodedtri, searchtri2);
     org(searchtri2, checkvertex);
