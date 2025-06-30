@@ -1758,7 +1758,7 @@ void choose_image(int inc, int image)
   current_image = image;
 }
 
-Window make_button(char *name, int x, int y, int width)
+Window make_button(const char* const name, int x, int y, int width)
 {
   XSetWindowAttributes attr;
   XSizeHints hints;
@@ -2835,14 +2835,14 @@ int main(int argc, char **argv)
             draw(current_inc, current_image, xmin, ymin, xmax, ymax);
           }
         } else if (event.xany.window == exppluswin) {
-          if ((current_image == PART) && loaded[PART] && explode) {
+          if ((current_image == PART) && loaded[current_inc][PART] && explode) {
             explosion += 0.125;
             findpartshift(subdomains[current_inc], explosion,
                           partcenter[current_inc], partshift[current_inc]);
             draw(current_inc, current_image, xmin, ymin, xmax, ymax);
           }
         } else if (event.xany.window == expminuswin) {
-          if ((current_image == PART) && loaded[PART] && explode &&
+          if ((current_image == PART) && loaded[current_inc][PART] && explode &&
               (explosion >= 0.125)) {
             explosion -= 0.125;
             findpartshift(subdomains[current_inc], explosion,
@@ -2850,7 +2850,7 @@ int main(int argc, char **argv)
             draw(current_inc, current_image, xmin, ymin, xmax, ymax);
           }
         } else if (event.xany.window == fillwin) {
-          if ((current_image == PART) && loaded[PART]) {
+          if ((current_image == PART) && loaded[current_inc][PART]) {
             fillelem = !fillelem;
             draw(current_inc, current_image, xmin, ymin, xmax, ymax);
           }
@@ -2977,7 +2977,7 @@ int main(int argc, char **argv)
         } else {
           xptr = ((REAL) event.xbutton.x - xoffset) / xscale;
           yptr = ((REAL) event.xbutton.y - yoffset) / yscale;
-          if ((current_image == PART) && loaded[PART] && explode) {
+          if ((current_image == PART) && loaded[current_inc][PART] && explode) {
             xptr = (xptr + partcenter[current_inc]
                                      [subdomains[current_inc] << 1]
                     * explosion) / (1.0 + explosion);
