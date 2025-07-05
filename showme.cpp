@@ -847,7 +847,7 @@ char *readline(char *string, FILE *infile, char *infilename)
 
   do {
     result = fgets(string, INPUTLINESIZE, infile);
-    if (result == (char *) NULL) {
+    if (result == nullptr) {
       printf("  Error:  Unexpected end of file in %s.\n",
              infilename);
       exit(1);
@@ -901,7 +901,7 @@ int load_node(char *fname, int *firstnumber, int *nodes, int *dim,
     printf("Opening %s.\n", fname);
   }
   infile = fopen(fname, "r");
-  if (infile == (FILE *) NULL) {
+  if (infile == nullptr) {
     printf("  Error:  Cannot access file %s.\n", fname);
     return 1;
   }
@@ -952,7 +952,7 @@ int load_node(char *fname, int *firstnumber, int *nodes, int *dim,
            fname);
   }
   *ptr = (REAL *) malloc((*nodes + 1) * *dim * sizeof(REAL));
-  if (*ptr == (REAL *) NULL) {
+  if (*ptr == nullptr) {
     printf("  Out of memory.\n");
     return 1;
   }
@@ -1038,7 +1038,7 @@ int load_poly(int inc, char *fname, int *firstnumber, int *pnodes,
     printf("Opening %s.\n", fname);
   }
   infile = fopen(fname, "r");
-  if (infile == (FILE *) NULL) {
+  if (infile == nullptr) {
     printf("  Error:  Cannot access file %s.\n", fname);
     return 1;
   }
@@ -1104,7 +1104,7 @@ int load_poly(int inc, char *fname, int *firstnumber, int *pnodes,
   }
   if (*pnodes > 0) {
     *nodeptr = (REAL *) malloc((*pnodes + 1) * *dim * sizeof(REAL));
-    if (*nodeptr == (REAL *) NULL) {
+    if (*nodeptr == nullptr) {
       printf("  Out of memory.\n");
       return 1;
     }
@@ -1165,7 +1165,7 @@ int load_poly(int inc, char *fname, int *firstnumber, int *pnodes,
     return 1;
   }
   *edgeptr = (int *) malloc(((*edges + 1) << 1) * sizeof(int));
-  if (*edgeptr == (int *) NULL) {
+  if (*edgeptr == nullptr) {
     printf("  Out of memory.\n");
     free(*nodeptr);
     return 1;
@@ -1218,7 +1218,7 @@ int load_poly(int inc, char *fname, int *firstnumber, int *pnodes,
     return 1;
   }
   *holeptr = (REAL *) malloc((*holes + 1) * *dim * sizeof(REAL));
-  if (*holeptr == (REAL *) NULL) {
+  if (*holeptr == nullptr) {
     printf("  Out of memory.\n");
     free(*nodeptr);
     free(*edgeptr);
@@ -1306,7 +1306,7 @@ int load_ele(char *fname, int firstnumber, int nodes, int *elems, int *corners, 
     printf("Opening %s.\n", fname);
   }
   infile = fopen(fname, "r");
-  if (infile == (FILE *) NULL) {
+  if (infile == nullptr) {
     printf("  Error:  Cannot access file %s.\n", fname);
     return 1;
   }
@@ -1338,7 +1338,7 @@ int load_ele(char *fname, int firstnumber, int nodes, int *elems, int *corners, 
     return 1;
   }
   *ptr = (int *) malloc((*elems + 1) * 3 * sizeof(int));
-  if (*ptr == (int *) NULL) {
+  if (*ptr == nullptr) {
     printf("  Out of memory.\n");
     return 1;
   }
@@ -1388,7 +1388,7 @@ int load_edge(char *fname, int firstnumber, int nodes, int *edges, int **edgeptr
     printf("Opening %s.\n", fname);
   }
   infile = fopen(fname, "r");
-    if (infile == (FILE *) NULL) {
+    if (infile == nullptr) {
       printf("  Error:  Cannot access file %s.\n", fname);
       return 1;
     }
@@ -1416,12 +1416,12 @@ int load_edge(char *fname, int firstnumber, int nodes, int *edges, int **edgeptr
     return 1;
   }
   *edgeptr = (int *) malloc(((*edges + 1) << 1) * sizeof(int));
-  if (*edgeptr == (int *) NULL) {
+  if (*edgeptr == nullptr) {
     printf("  Out of memory.\n");
     return 1;
   }
   *normptr = (REAL *) malloc(((*edges + 1) << 1) * sizeof(REAL));
-  if (*normptr == (REAL *) NULL) {
+  if (*normptr == nullptr) {
     printf("  Out of memory.\n");
     free(*edgeptr);
     return 1;
@@ -1505,7 +1505,7 @@ int load_part(char *fname, int dim, int firstnumber, int elems, REAL *nodeptr, i
     printf("Opening %s.\n", fname);
   }
   infile = fopen(fname, "r");
-  if (infile == (FILE *) NULL) {
+  if (infile == nullptr) {
     printf("  Error:  Cannot access file %s.\n", fname);
     return 1;
   }
@@ -1527,7 +1527,7 @@ int load_part(char *fname, int dim, int firstnumber, int elems, REAL *nodeptr, i
     return 1;
   }
   *partition = (int *) malloc((elems + 1) * sizeof(int));
-  if (*partition == (int *) NULL) {
+  if (*partition == nullptr) {
     printf("  Out of memory.\n");
     return 1;
   }
@@ -1558,20 +1558,20 @@ int load_part(char *fname, int dim, int firstnumber, int elems, REAL *nodeptr, i
   }
   fclose(infile);
   *partcenter = (REAL *) malloc(((*parts + 1) << 1) * sizeof(REAL));
-  if (*partcenter == (REAL *) NULL) {
+  if (*partcenter == nullptr) {
     printf("Error:  Out of memory.\n");
     free(*partition);
     return 1;
   }
   *partshift = (REAL *) malloc((*parts << 1) * sizeof(REAL));
-  if (*partshift == (REAL *) NULL) {
+  if (*partshift == nullptr) {
     printf("Error:  Out of memory.\n");
     free(*partition);
     free(*partcenter);
     return 1;
   }
   partsize = (int *) malloc((*parts + 1) * sizeof(int));
-  if (partsize == (int *) NULL) {
+  if (partsize == nullptr) {
     printf("Error:  Out of memory.\n");
     free(*partition);
     free(*partcenter);
@@ -1616,7 +1616,7 @@ int load_adj(char *fname, int *subdomains, int **ptr)
     printf("Opening %s.\n", fname);
   }
   infile = fopen(fname, "r");
-  if (infile == (FILE *) NULL) {
+  if (infile == nullptr) {
     printf("  Error:  Cannot access file %s.\n", fname);
     return 1;
   }
@@ -1627,7 +1627,7 @@ int load_adj(char *fname, int *subdomains, int **ptr)
     return 1;
   }
   *ptr = (int *) malloc(*subdomains * *subdomains * sizeof(int));
-  if (*ptr == (int *) NULL) {
+  if (*ptr == nullptr) {
     printf("  Out of memory.\n");
     return 1;
   }
@@ -1785,7 +1785,7 @@ Window make_button(const char* const name, int x, int y, int width)
   hints.width_inc = 1;
   hints.height_inc = 1;
   hints.flags = PMinSize | PMaxSize | PSize | PResizeInc;
-  XSetStandardProperties(display, button, name, "showme", None, (char **) NULL,
+  XSetStandardProperties(display, button, name, "showme", None, nullptr,
                          0, &hints);
   return button;
 }
@@ -1982,7 +1982,7 @@ void showme_window(int argc, char **argv)
   XColor alloc_color, exact_color;
   int i;
 
-  display = XOpenDisplay((char *) NULL);
+  display = XOpenDisplay(nullptr);
   if (!display) {
     printf("Error:  Cannot open display.\n");
     exit(1);
@@ -2145,28 +2145,28 @@ void draw_ele(int inc, int elems, int corners, int *ptr, int *partition,
   REAL *prevpoint, *nowpoint;
   XPoint *vertices;
 
-  if (color && fillelem && (partition != (int *) NULL)) {
+  if (color && fillelem && (partition != nullptr)) {
     vertices = (XPoint *) malloc(3 * sizeof(XPoint));
-    if (vertices == (XPoint *) NULL) {
+    if (vertices == nullptr) {
       printf("Error:  Out of memory.\n");
       exit(1);
     }
   }
   index = 3;
   for (i = 1; i <= elems; i++) {
-    if ((partition != (int *) NULL) && explode) {
+    if ((partition != nullptr) && explode) {
       shiftx = shift[partition[i] << 1];
       shifty = shift[(partition[i] << 1) + 1];
     }
-    if (color && (partition != (int *) NULL)) {
+    if (color && (partition != nullptr)) {
       if (fillelem) {
         XSetForeground(display, trianglegc, colors[partition[i] & 63]);
       } else {
         XSetForeground(display, linegc, colors[partition[i] & 63]);
       }
     }
-    if (color && fillelem && (partition != (int *) NULL)) {
-      if ((partition != (int *) NULL) && explode) {
+    if (color && fillelem && (partition != nullptr)) {
+      if ((partition != nullptr) && explode) {
         for (j = 0; j < 3; j++) {
           nowpoint = &nodeptr[inc][ptr[index + j] * node_dim[inc]];
           vertices[j].x = (nowpoint[0] + shiftx) * xscale + xoffset;
@@ -2183,7 +2183,7 @@ void draw_ele(int inc, int elems, int corners, int *ptr, int *partition,
                    Convex, CoordModeOrigin);
     }
     prevpoint = &nodeptr[inc][ptr[index + 2] * node_dim[inc]];
-    if ((partition != (int *) NULL) && explode) {
+    if ((partition != nullptr) && explode) {
       for (j = 0; j < 3; j++) {
         nowpoint = &nodeptr[inc][ptr[index++] * node_dim[inc]];
         XDrawLine(display, mainwindow, linegc,
@@ -2205,7 +2205,7 @@ void draw_ele(int inc, int elems, int corners, int *ptr, int *partition,
       }
     }
   }
-  if (color && fillelem && (partition != (int *) NULL)) {
+  if (color && fillelem && (partition != nullptr)) {
     free(vertices);
   }
   XSetForeground(display, linegc, showme_foreground);
@@ -2350,7 +2350,7 @@ void draw(int inc,int image,REAL xmin,REAL ymin,REAL xmax,REAL ymax)
       break;
     case ELE:
       draw_ele(inc, elems[inc], ele_corners[inc], eleptr[inc],
-               (int *) NULL, (REAL *) NULL,
+               nullptr, nullptr,
                xscale, yscale, xoffset, yoffset);
       break;
     case EDGE:
@@ -2397,7 +2397,7 @@ int print_head(char *fname, FILE **file,int llcornerx,int llcornery,int eps)
     printf("Writing %s\n", fname);
   }
   *file = fopen(fname, "w");
-  if (*file == (FILE *) NULL) {
+  if (*file == nullptr) {
     printf("  Error:  Could not open %s\n", fname);
     return 1;
   }
@@ -2479,7 +2479,7 @@ void print_ele(FILE *elefile, int nodes, int dim, int elems, int corners,
   REAL *nowpoint;
 
   index = 3;
-  if ((partition != (int *) NULL) && !bw_ps) {
+  if ((partition != nullptr) && !bw_ps) {
     fprintf(elefile, "0 0 0 s\n");
     fprintf(elefile, "%d %d m\n", llcornerx, llcornery);
     fprintf(elefile, "%d %d l\n", 612 - llcornerx, llcornery);
@@ -2488,7 +2488,7 @@ void print_ele(FILE *elefile, int nodes, int dim, int elems, int corners,
     fprintf(elefile, "fill\n");
   }
   for (i = 1; i <= elems; i++) {
-    if ((partition != (int *) NULL) && !bw_ps) {
+    if ((partition != nullptr) && !bw_ps) {
       colorindex = partition[i] & 63;
       fprintf(elefile, "%6.3f %6.3f %6.3f s\n",
               (REAL) rgb[colorindex].red / 65535.0,
@@ -2496,7 +2496,7 @@ void print_ele(FILE *elefile, int nodes, int dim, int elems, int corners,
               (REAL) rgb[colorindex].blue / 65535.0);
     }
     nowpoint = &nodeptr[eleptr[index + 2] * dim];
-    if ((partition != (int *) NULL) && (explode || bw_ps)) {
+    if ((partition != nullptr) && (explode || bw_ps)) {
       shiftx = shift[partition[i] << 1];
       shifty = shift[(partition[i] << 1) + 1];
       fprintf(elefile, "%d %d m\n",
@@ -2519,7 +2519,7 @@ void print_ele(FILE *elefile, int nodes, int dim, int elems, int corners,
                 (int) (nowpoint[1] * yscale + yoffset));
       }
     }
-    if (fillelem && (partition != (int *) NULL) && !bw_ps) {
+    if (fillelem && (partition != nullptr) && !bw_ps) {
       fprintf(elefile, "g\n1 1 0 s\n");
     }
     fprintf(elefile, "k\n");
@@ -2722,7 +2722,7 @@ void print(int inc, int image, REAL xmin, REAL ymin, REAL xmax, REAL ymax, int e
     case ELE:
       print_ele(psfile, nodes[inc], node_dim[inc], elems[inc],
                 ele_corners[inc], nodeptr[inc], eleptr[inc],
-                (int *) NULL, (REAL *) NULL,
+                nullptr, nullptr,
                 xxscale, yyscale, xxoffset, yyoffset, llcornerx, llcornery);
       break;
     case EDGE:
